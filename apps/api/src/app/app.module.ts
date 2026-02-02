@@ -19,49 +19,86 @@ import { ShipmentModule } from './entity/shipment/shipment.module';
 import { StorageModule } from './entity/storage/storage.module';
 import { SupplierModule } from './entity/supplier/supplier.module';
 
-
 @Module({
-  imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    ServeStaticModule.forRoot({ rootPath: path.join(__dirname, '../ecommerce') }),
-    Neo4jModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        scheme: 'neo4j',
-        host: process.env.NEO4j_HOST ?? configService.get('NEO4j_HOST') ?? 'localhost',
-        port: parseInt(process.env.NEO4J_PORT) ?? configService.get<number>('NEO4J_PORT') ?? 7687,
-        username: process.env.NEO4j_USERNAME ?? configService.get('NEO4j_USERNAME') ?? 'neo4j',
-        password: process.env.NEO4j_PASSWORD ?? configService.get('NEO4j_PASSWORD') ?? '',
-        database: process.env.NEO4J_DB_NAME ?? configService.get('NEO4J_DB_NAME') ?? 'neo4j',
-      }),
-      global: true
-    }),
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: process.env.DB_HOST ?? configService.get('DB_HOST') ?? 'localhost',
-        port: parseInt(process.env.DB_PORT) ?? configService.get<number>('DB_PORT') ?? 5432,
-        username: process.env.DB_USERNAME ?? configService.get('DB_USERNAME') ?? 'postgres',
-        password: process.env.DB_PASSWORD ?? configService.get('DB_PASSWORD') ?? '',
-        database: process.env.DB_NAME ?? configService.get('DB_NAME') ?? 'ecommerce',
-        entities: entities,
-        synchronize: false,
-      }),
-      inject: [ConfigService],
-    }),
-    GraphModule,
-    CancelModule,
-    OrderModule,
-    KeywordModule,
-    ProductModule,
-    ReturnModule,
-    ShipmentModule,
-    StorageModule,
-    SupplierModule,
-  ],
-  controllers: [AppController],
-  providers: [AppService],
+    imports: [
+        ConfigModule.forRoot({ isGlobal: true }),
+        ServeStaticModule.forRoot({
+            rootPath: path.join(__dirname, '../ecommerce'),
+        }),
+        Neo4jModule.forRootAsync({
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            useFactory: (configService: ConfigService) => {
+                const neo4jUri =
+                    process.env.NEO4J_URI ??
+                    configService.get<string>('NEO4J_URI') ??
+                    'bolt://localhost:7687';
+
+                const parsed = new URL(neo4jUri);
+                const scheme = parsed.protocol.replace(':', ''); // e.g. 'neo4j+s', 'bolt'
+                const host = parsed.hostname;
+                const port = parsed.port ? Number(parsed.port) : 7687;
+
+                return {
+                    scheme,
+                    host,
+                    port: Number.isFinite(port) ? port : 7687,
+                    username:
+                        process.env.NEO4J_USERNAME ??
+                        configService.get<string>('NEO4J_USERNAME') ??
+                        'neo4j',
+                    password:
+                        process.env.NEO4J_PASSWORD ??
+                        configService.get<string>('NEO4J_PASSWORD') ??
+                        '',
+                    database:
+                        process.env.NEO4J_DB_NAME ??
+                        configService.get<string>('NEO4J_DB_NAME') ??
+                        'neo4j',
+                };
+            },
+            global: true,
+        }),
+        TypeOrmModule.forRootAsync({
+            imports: [ConfigModule],
+            useFactory: (configService: ConfigService) => ({
+                type: 'postgres',
+                host:
+                    process.env.DB_HOST ??
+                    configService.get('DB_HOST') ??
+                    'localhost',
+                port:
+                    parseInt(process.env.DB_PORT) ??
+                    configService.get<number>('DB_PORT') ??
+                    5432,
+                username:
+                    process.env.DB_USERNAME ??
+                    configService.get('DB_USERNAME') ??
+                    'postgres',
+                password:
+                    process.env.DB_PASSWORD ??
+                    configService.get('DB_PASSWORD') ??
+                    '',
+                database:
+                    process.env.DB_NAME ??
+                    configService.get('DB_NAME') ??
+                    'ecommerce',
+                entities: entities,
+                synchronize: false,
+            }),
+            inject: [ConfigService],
+        }),
+        GraphModule,
+        CancelModule,
+        OrderModule,
+        KeywordModule,
+        ProductModule,
+        ReturnModule,
+        ShipmentModule,
+        StorageModule,
+        SupplierModule,
+    ],
+    controllers: [AppController],
+    providers: [AppService],
 })
 export class AppModule {}
